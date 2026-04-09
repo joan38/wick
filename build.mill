@@ -1,0 +1,53 @@
+//| mill-version: 1.1.5-native
+//| mill-jvm-version: 17
+//| mvnDeps:
+//| - com.goyeau::mill-git::0.3.2
+//| - org.typelevel::scalac-options:0.1.8
+
+import com.goyeau.mill.git.GitVersionedPublishModule
+import mill.scalalib.scalafmt.ScalafmtModule
+import mill.*
+import mill.Task.log
+import mill.api.BuildCtx.workspaceRoot
+import mill.api.{Cross, Evaluator}
+import mill.javalib.publish.*
+import mill.scalalib.*
+import mill.scalalib.publish.{PomSettings, VersionControl}
+import org.typelevel.scalacoptions.ScalacOptions.*
+import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
+import scala.util.{Failure, Success, Try}
+
+object `package` extends ScalaModule with ScalafmtModule with GitVersionedPublishModule:
+  def scalaVersion  = "3.7.4"
+  def jvmVersion    = "17"
+  def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
+    ScalaVersion.unsafeFromString(scalaVersion()),
+    ScalacOptions.default + newSyntax + privateExplicitNulls ++ fatalWarningOptions
+  )
+
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
+    mvn"org.apache.spark::spark-sql:3.5.7".withDottyCompat(scalaVersion())
+  )
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    mvn"io.github.vincenzobaz::spark-scala3-encoders:0.3.2".excludeOrg("org.apache.spark"),
+    mvn"io.github.vincenzobaz::spark-scala3-udf:0.3.2".excludeOrg("org.apache.spark")
+  )
+
+  object test extends ScalaTests with TestModule.Munit with ScalafmtModule:
+    def scalacOptions = super.scalacOptions().filterNot(opt => fatalWarningOptions.exists(_.option == opt))
+    def mvnDeps       = super.mvnDeps() ++ Seq(
+      mvn"org.scalameta::munit:1.2.2",
+      mvn"org.apache.spark::spark-sql:3.5.7".withDottyCompat(this.scalaVersion())
+    )
+    def forkArgs = Seq("--add-exports=java.base/sun.nio.ch=ALL-UNNAMED")
+  end test
+
+  def artifactName = "wick"
+  def pomSettings  = PomSettings(
+    description = "A zero cost type safe Apache Spark API",
+    organization = "com.netflix.wick",
+    url = "https://github.com/Netflix/wick",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl(),
+    developers = Seq(Developer(id = "joan38", name = "Joan Goyeau", url = "https://github.com/joan38"))
+  )

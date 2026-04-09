@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  create:
+    tags:
+      - v*
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Pull all history with tags for correct versioning
+        run: git fetch --prune --unshallow
+      - name: Checks
+        run: |
+          git config --global user.name "CI"
+          ./mill __.checkFormat + __.test + __.publishLocal
+      - name: Publish
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
+        run: |
+          export MILL_PGP_SECRET_BASE64=$(echo -n "$MILL_PGP_SECRET_RAW" | base64)
+          ./mill mill.scalalib.SonatypeCentralPublishModule/
+        env:
+          MILL_PGP_SECRET_RAW: ${{ secrets.ORG_SIGNING_KEY }}
+          MILL_PGP_PASSPHRASE: ${{ secrets.ORG_SIGNING_PASSWORD }}
+          MILL_SONATYPE_USERNAME: ${{ secrets.ORG_NETFLIXOSS_USERNAME }}
+          MILL_SONATYPE_PASSWORD: ${{ secrets.ORG_NETFLIXOSS_PASSWORD }}
