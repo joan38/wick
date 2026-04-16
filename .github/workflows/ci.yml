@@ -12,22 +12,39 @@ on:
 jobs:
   pipeline:
     runs-on: ubuntu-latest
+    environment: Publish
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
+
       - name: Pull all history with tags for correct versioning
         run: git fetch --prune --unshallow
-      - name: Checks
+
+      # - name: Checks
+      #   run: |
+      #     git config --global user.name "CI"
+      #     ./mill __.checkFormat + __.test + __.publishLocal
+
+      - name: SetupPGP
         run: |
-          git config --global user.name "CI"
-          ./mill __.checkFormat + __.test + __.publishLocal
+          mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+          echo "allow-preset-passphrase" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent
+          echo "$ORG_SIGNING_KEY" | gpg --batch --import
+          PASS_HEX=$(printf '%s' "$ORG_SIGNING_PASSWORD" | od -A n -t x1 | tr -d ' \n')
+          for KEYGRIP in $(gpg --list-secret-keys --with-keygrip --with-colons | awk -F: '/^grp/{print $10}'); do
+            gpg-connect-agent "PRESET_PASSPHRASE $KEYGRIP -1 $PASS_HEX" /bye
+          done
+        env:
+          ORG_SIGNING_KEY: ${{ secrets.ORG_SIGNING_KEY }}
+          ORG_SIGNING_PASSWORD: ${{ secrets.ORG_SIGNING_PASSWORD }}
+
       - name: Publish
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
         run: |
-          export MILL_PGP_SECRET_BASE64=$(echo -n "$MILL_PGP_SECRET_RAW" | base64)
-          ./mill mill.scalalib.SonatypeCentralPublishModule/
+          ./mill --no-server mill.scalalib.SonatypeCentralPublishModule/ \
+            --useGpgCli true \
+            --gpgArgs "--no-tty,--pinentry-mode,loopback,--batch,--yes,--armor,--detach-sign"
         env:
-          MILL_PGP_SECRET_RAW: ${{ secrets.ORG_SIGNING_KEY }}
-          MILL_PGP_PASSPHRASE: ${{ secrets.ORG_SIGNING_PASSWORD }}
-          MILL_SONATYPE_USERNAME: ${{ secrets.ORG_NETFLIXOSS_USERNAME }}
-          MILL_SONATYPE_PASSWORD: ${{ secrets.ORG_NETFLIXOSS_PASSWORD }}
+          MILL_SONATYPE_USERNAME: ${{ secrets.ORG_SONATYPE_USERNAME }}
+          MILL_SONATYPE_PASSWORD: ${{ secrets.ORG_SONATYPE_PASSWORD }}

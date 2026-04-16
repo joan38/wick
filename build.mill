@@ -4,7 +4,7 @@
 //| - com.goyeau::mill-git::0.3.2
 //| - org.typelevel::scalac-options:0.1.8
 
-import com.goyeau.mill.git.GitVersionedPublishModule
+import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import mill.scalalib.scalafmt.ScalafmtModule
 import mill.*
 import mill.Task.log
@@ -43,6 +43,7 @@ object `package` extends ScalaModule with ScalafmtModule with GitVersionedPublis
   end test
 
   def artifactName = "wick"
+  def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)()
   def pomSettings  = PomSettings(
     description = "A zero cost type safe Apache Spark API",
     organization = "com.netflix.wick",
