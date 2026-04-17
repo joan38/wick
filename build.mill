@@ -52,3 +52,25 @@ object `package` extends ScalaModule with ScalafmtModule with GitVersionedPublis
     versionControl = VersionControl(),
     developers = Seq(Developer(id = "joan38", name = "Joan Goyeau", url = "https://github.com/joan38"))
   )
+
+  /** Sets up a Git pre-commit hook that formats code before each commit.
+    */
+  def precommitInstall() = Task.Command:
+    log.info("Installing precommit hook")
+    os.write.over(
+      workspaceRoot / ".git/hooks/pre-commit",
+      s"""#!/bin/sh
+        |
+        |if ! git diff --quiet; then
+        |  git stash --keep-index --quiet
+        |  ./mill __.reformat
+        |  git add --update
+        |  git stash pop --quiet
+        |else
+        |  ./mill __.reformat
+        |  git add --update
+        |fi""".stripMargin,
+      perms = "rwxr-xr-x",
+      createFolders = true
+    )
+    log.info("Precommit hook installed")

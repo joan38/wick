@@ -11,6 +11,4 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Checks
-        run: |
-          git config --global user.name "CI"
-          ./mill __.checkFormat + __.test + __.publishLocal
+        run: ./mill __.checkFormat + __.test + __.publishLocal
