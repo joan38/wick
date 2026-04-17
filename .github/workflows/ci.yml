@@ -20,10 +20,10 @@ jobs:
       - name: Pull all history with tags for correct versioning
         run: git fetch --prune --unshallow
 
-      # - name: Checks
-      #   run: |
-      #     git config --global user.name "CI"
-      #     ./mill __.checkFormat + __.test + __.publishLocal
+      - name: Checks
+        run: |
+          git config --global user.name "CI"
+          ./mill __.checkFormat + __.test + __.publishLocal
 
       - name: SetupPGP
         run: |
