@@ -42,9 +42,9 @@ object `package` extends ScalaModule with ScalafmtModule with GitVersionedPublis
     def forkArgs = Seq("--add-exports=java.base/sun.nio.ch=ALL-UNNAMED")
   end test
 
-  def artifactName = "wick"
+  def artifactName   = "wick"
   def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)()
-  def pomSettings  = PomSettings(
+  def pomSettings    = PomSettings(
     description = "A zero cost type safe Apache Spark API",
     organization = "com.netflix.wick",
     url = "https://github.com/Netflix/wick",

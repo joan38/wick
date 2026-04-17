@@ -1,0 +1,16 @@
+name: PR Checks
+
+on:
+  pull_request:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Checks
+        run: |
+          git config --global user.name "CI"
+          ./mill __.checkFormat + __.test + __.publishLocal

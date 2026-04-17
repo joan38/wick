@@ -1,4 +1,4 @@
-name: CI
+name: Publish
 
 on:
   create:
@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
 
 jobs:
   pipeline:
@@ -17,13 +16,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Pull all history with tags for correct versioning
-        run: git fetch --prune --unshallow
-
       - name: Checks
         run: |
           git config --global user.name "CI"
-          ./mill __.checkFormat + __.test + __.publishLocal
+          ./mill __.checkFormat + __.test
 
       - name: SetupPGP
         run: |
@@ -42,7 +38,8 @@ jobs:
       - name: Publish
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
         run: |
-          ./mill --no-server mill.scalalib.SonatypeCentralPublishModule/ \
+          git fetch --prune --unshallow
+          ./mill mill.scalalib.SonatypeCentralPublishModule/ \
             --useGpgCli true \
             --gpgArgs "--no-tty,--pinentry-mode,loopback,--batch,--yes,--armor,--detach-sign"
         env:
