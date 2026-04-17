@@ -49,7 +49,7 @@ object `package` extends ScalaModule with ScalafmtModule with GitVersionedPublis
     organization = "com.netflix.wick",
     url = "https://github.com/Netflix/wick",
     licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl(),
+    versionControl = VersionControl.github(owner = "Netflix", repo = "wick"),
     developers = Seq(Developer(id = "joan38", name = "Joan Goyeau", url = "https://github.com/joan38"))
   )
 
