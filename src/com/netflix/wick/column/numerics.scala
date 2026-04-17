@@ -1,6 +1,7 @@
 package com.netflix.wick.column
 
 import org.apache.spark.sql.catalyst.expressions.{Add, Divide, Multiply, Remainder, Subtract, UnaryMinus}
+import scala.annotation.implicitNotFound
 
 extension [A, ExpA <: Expr](a: ExpA[A])
   def unary_-(using op: NumericOp[A, A], exprCreator: ExprCreator[ExpA[A] *: EmptyTuple]): exprCreator.Exp[op.Result] =
@@ -56,6 +57,7 @@ extension [A, ExpA <: Expr](a: ExpA[A])
   )(using op: NumericOp[A, B], exprCreator: ExprCreator[ExpA[A] *: EmptyTuple]): exprCreator.Exp[op.Result] =
     exprCreator(Remainder(a.underlying, lit(b).underlying))
 
+@implicitNotFound("Numeric operation between ${A} and ${B} is not possible. No given NumericOp[${A}, ${B}] found")
 trait NumericOp[A, B]:
   type Result
 

@@ -390,7 +390,7 @@ class equalityTest extends FunSuite with SparkSuite:
         |      persons.select(person => (result = person.age === person.name))
         |                                                                    ^
         |error:
-        |Cannot compare types Int | Null and String. No implicit Eq[Int | Null, String] found.
+        |Comparison between Int | Null and String is not possible. No given Eq[Int | Null, String] found.
         |I found:
         |
         |    com.netflix.wick.column.Eq.given_Eq_A_A[A]
@@ -413,7 +413,7 @@ class equalityTest extends FunSuite with SparkSuite:
         |      persons.select(person => (result = person.name === person.age))
         |                                                                    ^
         |error:
-        |Cannot compare types String and Int | Null. No implicit Eq[String, Int | Null] found.
+        |Comparison between String and Int | Null is not possible. No given Eq[String, Int | Null] found.
         |I found:
         |
         |    com.netflix.wick.column.Eq.given_Eq_A_A[A]

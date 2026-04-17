@@ -25,7 +25,7 @@ extension [A, ExpA <: Expr](a: ExpA[A])
   )(using eq: Eq[A, B], exprCreator: ExprCreator[ExpA[A] *: EmptyTuple]): exprCreator.Exp[Boolean] =
     exprCreator(Not(EqualNullSafe(a.underlying, lit(b).underlying)))
 
-@implicitNotFound("Cannot compare types ${A} and ${B}. No implicit Eq[${A}, ${B}] found")
+@implicitNotFound("Comparison between ${A} and ${B} is not possible. No given Eq[${A}, ${B}] found")
 trait Eq[A, B]
 
 object Eq:
