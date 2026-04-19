@@ -15,8 +15,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-#      - name: Checks
-#        run: ./mill __.checkFormat + __.test
+      - name: Checks
+        run: ./mill __.checkFormat + __.test
 
       - name: Publish
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
