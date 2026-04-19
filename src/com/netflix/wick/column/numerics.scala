@@ -100,3 +100,5 @@ object NumericOp:
 
   given NumericOp[java.math.BigDecimal, java.math.BigDecimal]:
     type Result = java.math.BigDecimal
+  given NumericOp[java.math.BigDecimal, Double]:
+    type Result = Double
