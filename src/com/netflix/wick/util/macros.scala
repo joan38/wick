@@ -3,6 +3,39 @@ package util
 
 import scala.quoted.*
 
+private[wick] def isNullable(using Quotes)(tpe: quotes.reflect.TypeRepr): Boolean =
+  import quotes.reflect.*
+  tpe.dealias match
+    case OrType(_, null_) if null_.typeSymbol == defn.NullClass => true
+    case OrType(null_, _) if null_.typeSymbol == defn.NullClass => true
+    case _                                                      => false
+
+/** Check if all fields in `to` exist in `from` with matching types (from may have extra fields) */
+private[wick] def isSubsetMatch(using Quotes)(from: quotes.reflect.TypeRepr, to: quotes.reflect.TypeRepr): Boolean =
+  import quotes.reflect.*
+  (from.dealias, to.dealias) match
+    case (AppliedType(f, List(fElem)), AppliedType(t, List(tElem)))
+        if f.typeSymbol == TypeRepr.of[Seq[?]].typeSymbol
+          && t.typeSymbol == TypeRepr.of[Seq[?]].typeSymbol =>
+      return isSubsetMatch(fElem, tElem)
+    case (AppliedType(f, List(fKey, fVal)), AppliedType(t, List(tKey, tVal)))
+        if f.typeSymbol == TypeRepr.of[Map[?, ?]].typeSymbol
+          && t.typeSymbol == TypeRepr.of[Map[?, ?]].typeSymbol =>
+      return isSubsetMatch(fKey, tKey) && isSubsetMatch(fVal, tVal)
+    case _ =>
+
+  val fromStruct = typeStructure(from)
+  val toStruct   = typeStructure(to)
+
+  if toStruct.isEmpty && fromStruct.isEmpty then return from <:< to
+
+  val fromMap = fromStruct.toMap
+  toStruct.forall { case (name, toFieldType) =>
+    fromMap.get(name) match
+      case Some(fromFieldType) => isSubsetMatch(fromFieldType, toFieldType)
+      case None                => false
+  }
+
 /** Compare two type structures recursively */
 private[wick] def typesMatch(using Quotes)(from: quotes.reflect.TypeRepr, to: quotes.reflect.TypeRepr): Boolean =
   import quotes.reflect.*
@@ -16,6 +49,10 @@ private[wick] def typesMatch(using Quotes)(from: quotes.reflect.TypeRepr, to: qu
         if col1.typeSymbol == TypeRepr.of[Seq[?]].typeSymbol
           && col2.typeSymbol == TypeRepr.of[Seq[?]].typeSymbol =>
       return typesMatch(elem1, elem2)
+    case (AppliedType(col1, List(k1, v1)), AppliedType(col2, List(k2, v2)))
+        if col1.typeSymbol == TypeRepr.of[Map[?, ?]].typeSymbol
+          && col2.typeSymbol == TypeRepr.of[Map[?, ?]].typeSymbol =>
+      return typesMatch(k1, k2) && typesMatch(v1, v2)
     case _ =>
 
   // Get structures
@@ -43,6 +80,10 @@ private[wick] def typeStructure(using Quotes)(tpe: quotes.reflect.TypeRepr): Lis
     case AppliedType(namedTuple, List(names, values))
         if namedTuple.typeSymbol == TypeRepr.of[NamedTuple.NamedTuple].typeSymbol =>
       extractNamedTupleFields(names, values)
+
+    // Handle T | Null — extract structure from the non-null side
+    case OrType(inner, null_) if null_.typeSymbol == defn.NullClass => typeStructure(inner)
+    case OrType(null_, inner) if null_.typeSymbol == defn.NullClass => typeStructure(inner)
 
     // Handle case classes and product types
     case _ =>

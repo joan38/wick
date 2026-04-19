@@ -85,3 +85,149 @@ class selectTest extends FunSuite with SparkSuite:
         """{"emp_id":3,"emp_name":"Employee: Charlie","dept_name":"Engineering Department"}"""
       )
     )
+
+  test("select from tuples to a case class with same schema"):
+    val personsV1 = spark.createDataSeq(Seq(Person("Alice", 30), Person("Bob", 25)))
+
+    val personsV2: DataSeq[Person] = personsV1
+      .select(row => (name = row.name, age = row.age))
+      .select[Person]
+
+    assertEquals(personsV2.dataFrame.count(), 2L)
+    assertEquals(personsV2.dataFrame.columns.toSeq, Seq("name", "age"))
+
+  test("select from tuples to a case class with extra fields"):
+    val personsV1 = spark.createDataSeq(Seq(Person("Alice", 30), Person("Bob", 25)))
+    val personsV2 = personsV1
+      .withColumns(row => (extra = row.name))
+      .select[Person]
+
+    assertEquals(personsV2.dataFrame.count(), 2L)
+    assertEquals(personsV2.dataFrame.columns.toSeq, Seq("name", "age"))
+
+  test("select from tuples to a case class with extra fields in sub struct"):
+    case class Full(name: String, age: Int, attr: FullAttr)
+    case class FullAttr(height: Int, extra: String)
+
+    case class Slim(name: String, age: Int, attr: SlimAttr)
+    case class SlimAttr(height: Int)
+
+    val personsV1 = spark.createDataSeq(Seq(Full("Alice", 30, FullAttr(178, "extra"))))
+    val personsV2 = personsV1.select[Slim]
+
+    assertEquals(personsV2.dataFrame.count(), 1L)
+    assertEquals(
+      personsV2.dataFrame.schema,
+      StructType(
+        Array(
+          StructField("name", StringType, nullable = true),
+          StructField("age", IntegerType, nullable = true),
+          StructField("attr", StructType(Array(StructField(name = "height", IntegerType))), nullable = false)
+        )
+      )
+    )
+
+  test("select from tuples to a case class with extra fields in nullable sub struct"):
+    case class Full(name: String, age: Int, attr: FullAttr | Null)
+    case class FullAttr(height: Int, extra: String)
+
+    case class Slim(name: String, age: Int, attr: SlimAttr | Null)
+    case class SlimAttr(height: Int)
+
+    val personsV1 = spark.createDataSeq(Seq(Full("Alice", 30, FullAttr(178, "extra"))))
+    val personsV2 = personsV1.select[Slim]
+
+    assertEquals(personsV2.dataFrame.count(), 1L)
+    assertEquals(
+      personsV2.dataFrame.schema,
+      StructType(
+        Array(
+          StructField("name", StringType, nullable = true),
+          StructField("age", IntegerType, nullable = true),
+          StructField("attr", StructType(Array(StructField(name = "height", IntegerType))), nullable = false)
+        )
+      )
+    )
+
+  test("select from tuples to a case class with extra fields in array of sub struct"):
+    case class Full(name: String, age: Int, attr: Seq[FullAttr])
+    case class FullAttr(height: Int, extra: String)
+
+    case class Slim(name: String, age: Int, attr: Seq[SlimAttr])
+    case class SlimAttr(height: Int)
+
+    val personsV1 = spark.createDataSeq(Seq(Full("Alice", 30, Seq(FullAttr(178, "extra")))))
+    val personsV2 = personsV1.select[Slim]
+
+    assertEquals(personsV2.dataFrame.count(), 1L)
+    assertEquals(
+      personsV2.dataFrame.schema,
+      StructType(
+        Array(
+          StructField("name", StringType, nullable = true),
+          StructField("age", IntegerType, nullable = true),
+          StructField(
+            "attr",
+            ArrayType(StructType(Array(StructField(name = "height", IntegerType))), containsNull = true),
+            nullable = true
+          )
+        )
+      )
+    )
+
+  test("select from tuples to a case class with extra fields in map of sub struct"):
+    case class Full(name: String, age: Int, attrs: Map[String, FullAttr])
+    case class FullAttr(height: Int, extra: String)
+
+    case class Slim(name: String, age: Int, attrs: Map[String, SlimAttr])
+    case class SlimAttr(height: Int)
+
+    val personsV1 = spark.createDataSeq(Seq(Full("Alice", 30, Map("main" -> FullAttr(178, "extra")))))
+    val personsV2 = personsV1.select[Slim]
+
+    assertEquals(personsV2.dataFrame.count(), 1L)
+    assertEquals(personsV2.dataFrame.columns.toSeq, Seq("name", "age", "attrs"))
+    assertEquals(
+      personsV2.dataFrame.collect().map(_.json).toSeq,
+      Seq("""{"name":"Alice","age":30,"attrs":{"main":{"height":178}}}""")
+    )
+
+  test("select should fail when source is missing a field"):
+    case class Slim(name: String, age: Int)
+    case class Full(name: String, age: Int, extra: Boolean)
+
+    val slim  = spark.createDataSeq(Seq(Slim("Alice", 30)))
+    val error = compileErrors("""slim.select[Full]""")
+    assert(clue(error).contains("Type structures do not match"))
+
+  test("select should fail when source is missing a field in sub struct"):
+    case class Slim(name: String, age: Int, attr: SlimAttr | Null)
+    case class SlimAttr(height: Int)
+
+    case class Full(name: String, age: Int, attr: FullAttr | Null)
+    case class FullAttr(height: Int, extra: String)
+
+    val slim  = spark.createDataSeq(Seq(Slim("Alice", 30, SlimAttr(178))))
+    val error = compileErrors("""slim.select[Full]""")
+    assert(clue(error).contains("Type structures do not match"))
+
+  test("select should fail when source is missing a field in array of sub struct"):
+    case class Slim(name: String, age: Int, attr: Seq[SlimAttr])
+    case class SlimAttr(height: Int)
+
+    case class Full(name: String, age: Int, attr: Seq[FullAttr])
+    case class FullAttr(height: Int, extra: String)
+
+    val slim  = spark.createDataSeq(Seq(Slim("Alice", 30, Seq(SlimAttr(178)))))
+    val error = compileErrors("""slim.select[Full]""")
+    assert(clue(error).contains("Type structures do not match"))
+
+  test("select should fail when types differ"):
+    case class Source(name: String, age: Int)
+    case class Target(name: String, age: String)
+
+    val source = spark.createDataSeq(Seq(Source("Alice", 30)))
+    val error  = compileErrors("""source.select[Target]""")
+    assert(clue(error).contains("Type structures do not match"))
+    assert(clue(error).contains("age: scala.Int"))
+    assert(clue(error).contains("age: java.lang.String"))
