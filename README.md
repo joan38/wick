@@ -1,7 +1,6 @@
 # <img src="https://github.com/user-attachments/assets/f8b4ef67-7bb1-4c84-817a-8c40b0e4f2a8" height="26"> Wick
 
-A zero cost type safe [Apache Spark](https://spark.apache.org) A
-PI.
+A zero cost type safe [Apache Spark](https://spark.apache.org) API.
 
 > Why Wick?
 
@@ -9,6 +8,8 @@ Using Wick gives you the guarantee that your code is correct at compile time, fu
 available columns and their types, and better guidance for your AI agents such as Claude.  
 Using Wick will save you **HOURS** of work because you won't have to go through lengthy packaging and
 deployment to a cluster to test if your job works... repeatedly because it never works the first time :tired_face:
+
+https://github.com/user-attachments/assets/6bd6cece-93fc-4771-9907-b446e7df00cc
 
 Jump to:
 * [Getting started](#getting-started)
