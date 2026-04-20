@@ -11,4 +11,6 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Checks
-        run: ./mill __.checkFormat + __.test + __.publishLocal
+        run: |
+          ./scala --power compile --server=false --enable-markdown README.md
+          ./mill __.checkFormat + __.test + __.publishLocal
