@@ -9,7 +9,11 @@ available columns and their types, and better guidance for your AI agents such a
 Using Wick will save you **HOURS** of work because you won't have to go through lengthy packaging and
 deployment to a cluster to test if your job works... repeatedly because it never works the first time :tired_face:
 
-https://github.com/user-attachments/assets/6bd6cece-93fc-4771-9907-b446e7df00cc
+https://github.com/user-attachments/assets/adf2d000-870e-4e96-ba60-754191c74119
+
+> [!TIP]
+> Witness Wick in action in the [Leveraging compile-time safety in Spark with Wick](doc/Leveraging_Wick_To_Build_Robust_Data_Pipelines.md)
+> post.
 
 Jump to:
 * [Getting started](#getting-started)
@@ -18,6 +22,8 @@ Jump to:
 * [Selecting](#selecting)
 * [Joining](#joining)
 * [Aggregating](#aggregating)
+* [Ordering/Sorting](#orderingsorting)
+* [Column operations](#column-operations)
 * [Related projects](#related-projects)
 * [Contributing](CONTRIBUTING.md)
 
@@ -29,7 +35,7 @@ Jump to:
 > [!IMPORTANT]
 > Wick needs Scala `3.7.0` or higher.  
 > This is because Wick relies on [Named Tuples](https://docs.scala-lang.org/scala3/reference/other-new-features/named-tuples.html)
-> to provide all these compile time safety and IDE auto completion.
+> to provide all these compile time safety and IDE auto-completion.
 
 Add the dependency to Gradle:
 ```
@@ -187,7 +193,7 @@ Wick provides type-safe filtering with compile-time guarantees that your filter 
   // |Charlie| 35|
   // +-------+---+
 
-  // Combined logical operators
+  // Combined logical operators with null handling
   val middleAged = persons.filter(person => nullable(person.age.? > 25 && person.age.? < 35).orElse(false))
   middleAged.show()
   // +-----+---+
@@ -297,6 +303,8 @@ Multiple joins:
 Wick provides type-safe grouping and aggregation operations:
 
 ```scala
+// `*` is the wildcard passed to `count` (equivalent to SQL's `count(*)`); it is backticked because `*` is reserved
+// in Scala for wild imports.
 import com.netflix.wick.functions.{count, `*`}
 
   // Group by a computed column and aggregate
@@ -432,10 +440,17 @@ The `||` or `&&` boolean operands are only valid on `Expr[Boolean]` and `Expr[Bo
 The usage of `+`, `-`, `*`, `/`, `<`, `<=`, `>` and `>=` numeric operands only compiles if used on supported
 numeric columns and their nullable types (like `Option[Int]`).
 
-### `orElse`
+### Null handling
 
-It is recommended to use `.orElse()` over `coalesce()` since it can track if the expression is still nullable or not
-with the `-Yexplicit-nulls` Scala compiler option.
+Handling nulls has never been so easy. Wick strikes a good balance between null safety and ergonomics.
+For example, if you need to add 2 nullable integers `Int | Null`, you can use `.?` inside a `nullable`:
+```scala
+val nullAdditions = persons.select(person => (addition = nullable(person.age.? + person.age.?)))
+```
+If any of the expressions where `.?` is called is null, it is bubbled up to the result of `nullable`.
+
+Another useful function is `.orElse()`, which is recommended over `coalesce()` since it can track if the expression is
+still nullable or not with the `-Yexplicit-nulls` Scala compiler option:
 ```scala
 import com.netflix.wick.column.orElse
 
@@ -453,7 +468,7 @@ nullFreePerson.select(person => (name = person.name, age_or_zero = person.age_or
 
 ### `asc`, `desc`, `min` and `max`
 
-Using any of `asc`, `desc`, `min` and `max` operands only compiles if used on supported types, shielded your job from
+Using any of `asc`, `desc`, `min` and `max` operands only compiles if used on supported types, shielding your job from
 resulting in a:
 ```
 ExtendedAnalysisException: [DATATYPE_MISMATCH.INVALID_ORDERING_TYPE] Cannot resolve "col ASC NULLS FIRST" due to data type mismatch: The `sortorder` does not support ordering on type "MAP<STRING, INT>".
