@@ -13,7 +13,7 @@ negatively affect business decisions and revenues.
 
 ## Preventing data quality issues
 
-There are a few different actions we can take to prevent bugs that leads to data quality issues:
+There are a few different actions we can take to prevent bugs that lead to data quality issues:
 
 **Code reviews** are a good way to bring fresh eyes (human and AI) to understand the proposed changes. However, it’s
 hard for a reviewer to predict exactly how some code will behave in practice, making it easy for bugs to slip through.
@@ -144,8 +144,8 @@ schemas in external tools, breaking their flow and leaving that context out of t
    .agg((sum("micros_usd") / 1_000_000).as("total_cash"))  
    .orderBy(desc("total_usd"))  // ← "total_usd" doesn't exist
    ```
-   The aggregation is named `total_cash`, but orderBy references `total_usd`. The DataFrame API considers this valid.
-   The job compiles, runs, and produces wrong results.
+   The aggregation is named `total_cash`, but orderBy references `total_usd`. The DataFrame API considers this valid at
+   compile time, but Spark fails at runtime when it analyzes the unresolved `total_usd` column.
 
 2. **No type information**. Fields have no declared types. Is `ad_decision_response_f.advertiser_id` a String? A Long?
    The equality join between `decisionResponses("advertiser_id")` and `advertisers("advertiser_id")` might never match
@@ -187,35 +187,35 @@ Wick was built without this compromise.
 Wick is an alternative Spark API developed at Netflix that provides a more robust, type-safe API than DataFrame while
 keeping 100% of Spark’s Catalyst Optimizer performance.
 
-Lets implement the same job using Wick’s API:
+Let's implement the same job using Wick’s API:
 ```scala
 // DEFINE DATA TYPES
 case class AdEvent(date: Int, hour: Int, ad_response_id: String, event_type: String)
 case class AdDecisionResponse(date: Int, hour: Int, ad_response_id: String, advertiser_id: String, micros_usd: Long)
-case class AdAdvertizer(advertiser_id: Long, name: String | Null)
+case class AdAdvertiser(advertiser_id: Long, name: String | Null)
 
 @main def job(date: Int, hour: Int) =
-// LOAD THE DATA
-val adEvents = spark
-  .loadTable[AdEvent]("ad_event_f")  
-  .filter(event => event.date === date && event.hour === hour)  
-  .filter(event => event.event_type === "AD_START")  
-val decisionResponses = spark
-  .loadTable[AdDecisionResponse]("ad_decision_response_f")  
-  .filter(event => event.date === date && event.hour === hour)  
-val advertisers = spark.loadTable[AdAdvertizer]("ad_advertiser_d")
+  // LOAD THE DATA
+  val adEvents = spark
+    .loadTable[AdEvent]("ad_event_f")  
+    .filter(event => event.date === date && event.hour === hour)  
+    .filter(event => event.event_type === "AD_START")  
+  val decisionResponses = spark
+    .loadTable[AdDecisionResponse]("ad_decision_response_f")  
+    .filter(event => event.date === date && event.hour === hour)  
+  val advertisers = spark.loadTable[AdAdvertiser]("ad_advertiser_d")
 
-// JOIN DATA  
-val allJoined = adEvents  
-  .leftJoin(
-    decisionResponses,  
-    (adEvent, decisionResponse) => adEvent.ad_response_id === decisionResponse.ad_response_id  
-  )
-  .leftJoin(  
-    advertisers,  
-    (adEvent, decisionResponse, advertiser) =>  
-      nullable(decisionResponse.?.advertiser_id) === advertiser.advertiser_id.asString
-  )
+  // JOIN DATA  
+  val allJoined = adEvents  
+    .leftJoin(
+      decisionResponses,  
+      (adEvent, decisionResponse) => adEvent.ad_response_id === decisionResponse.ad_response_id  
+    )
+    .leftJoin(  
+      advertisers,  
+      (adEvent, decisionResponse, advertiser) =>  
+        nullable(decisionResponse.?.advertiser_id) === advertiser.advertiser_id.asString
+    )
 
   // PROJECT DATA
   val projected = allJoined.select((adEvent, decisionResponse, advertiser) =>  
@@ -299,7 +299,7 @@ ever. Wick makes the right code easy to write and the wrong code impossible to c
 
 Wick unlocks new possibilities:
 
-In the example above, we defined case classes like `AdEvent`, `AdDecisionResponse` and `AdAdvertizer` that match the
+In the example above, we defined case classes like `AdEvent`, `AdDecisionResponse` and `AdAdvertiser` that match the
 schema of the corresponding source tables. However, as the tables evolve those classes would go out of sync.  
 One solution is to connect these classes to
 our [Unified Data Architecture](https://netflixtechblog.com/uda-unified-data-architecture-6a6aee261d8d) Domain Model so

@@ -68,7 +68,7 @@ Here is an example you can copy/paste in a file like `wick.scala` and run with
 //> using scala 3.7.4
 //> using options -Yexplicit-nulls
 //> using jvm 17
-//> using dep com.netflix.wick::wick:0.0.3
+//> using dep com.netflix.wick::wick:0.0.4
 //> using dep org.apache.spark:spark-sql_2.13:3.5.1
 //> using javaOptions --add-exports java.base/sun.nio.ch=ALL-UNNAMED
 
