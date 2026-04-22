@@ -20,14 +20,14 @@ jobs:
           ./scala --power compile --server=false --enable-markdown README.md
           ./mill __.checkFormat + __.test + __.publishLocal
 
-      - name: Publish
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
-        run: |
-          git fetch --prune --unshallow
-          MILL_PGP_SECRET_BASE64=$(printf '%s' "$ORG_SIGNING_KEY" | sed -n '/-----BEGIN PGP PRIVATE KEY BLOCK-----/,/-----END PGP PRIVATE KEY BLOCK-----/p' | base64 -w0) \
-            ./mill --no-server mill.scalalib.SonatypeCentralPublishModule/
-        env:
-          MILL_SONATYPE_USERNAME: ${{ secrets.ORG_SONATYPE_USERNAME }}
-          MILL_SONATYPE_PASSWORD: ${{ secrets.ORG_SONATYPE_PASSWORD }}
-          ORG_SIGNING_KEY: ${{ secrets.ORG_SIGNING_KEY }}
-          MILL_PGP_PASSPHRASE: ${{ secrets.ORG_SIGNING_PASSWORD }}
+#      - name: Publish
+#        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
+#        run: |
+#          git fetch --prune --unshallow
+#          MILL_PGP_SECRET_BASE64=$(printf '%s' "$ORG_SIGNING_KEY" | sed -n '/-----BEGIN PGP PRIVATE KEY BLOCK-----/,/-----END PGP PRIVATE KEY BLOCK-----/p' | base64 -w0) \
+#            ./mill --no-server mill.scalalib.SonatypeCentralPublishModule/
+#        env:
+#          MILL_SONATYPE_USERNAME: ${{ secrets.ORG_SONATYPE_USERNAME }}
+#          MILL_SONATYPE_PASSWORD: ${{ secrets.ORG_SONATYPE_PASSWORD }}
+#          ORG_SIGNING_KEY: ${{ secrets.ORG_SIGNING_KEY }}
+#          MILL_PGP_PASSPHRASE: ${{ secrets.ORG_SIGNING_PASSWORD }}
