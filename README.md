@@ -1,4 +1,4 @@
-# <img src="https://github.com/user-attachments/assets/f8b4ef67-7bb1-4c84-817a-8c40b0e4f2a8" height="26"> Wick
+# <img src="doc/assets/logo.png" height="26"> Wick
 
 A zero cost type safe [Apache Spark](https://spark.apache.org) API.
 
@@ -9,7 +9,7 @@ available columns and their types, and better guidance for your AI agents such a
 Using Wick will save you **HOURS** of work because you won't have to go through lengthy packaging and
 deployment to a cluster to test if your job works... repeatedly because it never works the first time :tired_face:
 
-https://github.com/user-attachments/assets/adf2d000-870e-4e96-ba60-754191c74119
+[Demo](https://github.com/user-attachments/assets/ec2e35ea-591a-487e-8df6-5612de7cd642)
 
 > [!TIP]
 > Witness Wick in action in the [Leveraging compile-time safety in Spark with Wick](doc/Leveraging_Wick_To_Build_Robust_Data_Pipelines.md)
@@ -45,7 +45,7 @@ Or to Scala CLI:
 ```
 com.netflix.wick::wick:<version>
 ```
-Check [the latest version on Artifactory](https://artifacts.netflix.com/nfrepo-everything-pom/com/netflix/wick/wick_3/).
+Check [the latest version on Maven Central](https://central.sonatype.com/artifact/com.netflix.wick/wick_3/).
 
 It is recommended to enable [Explicit Nulls](https://docs.scala-lang.org/scala3/reference/experimental/explicit-nulls.html)
 with the Scala compiler option `-Yexplicit-nulls`. This option allows tracking nullable columns by the type system.
@@ -475,7 +475,7 @@ ExtendedAnalysisException: [DATATYPE_MISMATCH.INVALID_ORDERING_TYPE] Cannot reso
 ```
 
 
-For more comprehensive examples, please check the [test folder](test/com/netflix/wick/).
+For more comprehensive examples, please check the [test folder](test/src/com/netflix/wick/).
 
 
 ## Related projects
